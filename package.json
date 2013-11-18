@@ -1,0 +1,21 @@
+{
+  "name": "js-template-sample-apps",
+  "preferGlobal": false,
+  "version": "0.0.1",
+  "author": "Hao Wooi Lim <zybler@gmail.com>",
+  "description": "Collection of sample ajax web applications for comparison of various JavaScript templating library.",
+  "scripts": {
+    "start": "node run-example.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/azybler/js-template-sample-apps.git"
+  },
+  "dependencies" : {
+    "connect"   :  "*"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=0.6"
+  }
+}

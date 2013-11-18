@@ -1,0 +1,138 @@
+<html>
+    <head>
+        <title>Sample handlebars app</title>
+        <link href="css/custom.css" rel="stylesheet" media="screen">
+        <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
+        <link href="css/ladda-themeless.min.css" rel="stylesheet" media="screen">
+
+        <!-- lookup http://jquery.com/download/
+             to get actual js library file -->
+        <script type="text/javascript" src="js/jquery-2.0.3.min.js"></script>
+
+        <!-- lookup http://momentjs.com/
+             to get actual js library file -->
+        <script type="text/javascript" src="js/moment.min.js"></script>
+
+        <!-- lookup http://handlebarsjs.com/
+             to get actual js library file -->
+        <script type="text/javascript" src="js/handlebars-v1.1.2.js"></script>
+
+        <!-- lookup http://msurguy.github.io/ladda-bootstrap/
+             to get actual css & js library file -->
+        <script type="text/javascript" src="js/spin.min.js"></script>
+        <script type="text/javascript" src="js/ladda.min.js"></script>
+    </head>
+    <body>
+        <div class="container" style="padding-top:30px">
+            <div>
+                <p>
+                    <button id="load-current-issues" class="btn btn-primary btn-lg ladda-button" data-style="expand-right" data-size="l">
+                        <span class="ladda-label">Load the current issues list</span>
+                        <span class="ladda-spinner"></span>
+                        <div class="ladda-progress" style="width: 0px;"></div>
+                    </button>
+                </p>
+            </div>
+            <div id="results">
+            </div>
+        </div>
+        <!-- lookup http://handlebarsjs.com/
+             for the script block ref and how to do each and if statement in a template. -->
+        <script id="issue-list-template" type="text/x-handlebars-template">
+            {{#if this}}
+                {{#each this}}
+                    <div class="issue-template">
+                        {{#ifCond status 'Resolved'}}
+                            <h3>{{title}} - Resolved {{prettifyDate resolvedAt}}</h3>
+                        {{else}}
+                            <h3>{{title}} - Begin {{prettifyDate beganAt}}</h3>
+                        {{/ifCond}}
+                        <p>{{description}}</p>
+                        <div style="padding-left:50px">
+                            <p>Updates:</p>
+                            {{#each updates}}
+                                <div class="well well-sm">
+                                    <p>{{update}}</p>
+                                    <em>By {{by}} - {{prettifyDate at}}</em>
+                                </div>
+                            {{/each}}
+                        </div>
+                    </div>
+                {{/each}}
+            {{else}}
+                <div class="no-issues-template alert alert-info">
+                    Everybodies happy!
+                </div>
+            {{/if}}
+        </script>
+        <script id="issue-list-template-error" type="text/x-handlebars-template">
+            <!-- lookup http://getbootstrap.com/components/#alerts-dismissable
+                 to find out which bootstrap classes to use to make it red. -->
+            <div class="alert alert-danger">
+                There is an error requesting the issues. You might want to try again.
+            </div>
+        </script>
+        <script type="text/javascript">
+            // lookup http://api.jquery.com/ready/
+            // to recall what's the correct way to ensure code is executed after page is loaded.
+            $(document).ready(function() {
+
+                // lookup http://stackoverflow.com/questions/8853396/logical-operator-in-a-handlebars-js-if-conditional
+                // to find out how to enable handlebars to use if statement to check equality against some constant.
+                Handlebars.registerHelper('ifCond', function(v1, v2, options) {
+                    if (v1 === v2)
+                        return options.fn(this);
+                    else
+                        return options.inverse(this);
+                });
+
+                // code adapted from https://gist.github.com/stephentcannon/3409103
+                // to find out how to enable a custom helper to render momentjs's output.
+                Handlebars.registerHelper('prettifyDate', function(v1) {
+                    if (window.moment)
+                        return moment(v1).fromNow();
+                    else
+                        return v1;
+                });
+
+                $('#load-current-issues').click(function(e){
+                    $("#results").fadeOut('fast');
+                    $("#results").html('');
+
+                    // lookup http://msurguy.github.io/ladda-bootstrap/
+                    e.preventDefault();
+                    var l = Ladda.create(this);
+                    l.start();
+
+                    $.ajax({
+                        type: "GET",
+                        // use this to test network latency
+                        //url: "https://dl.dropboxusercontent.com/u/141369/dummy_issues.json",
+
+                        url: "dummy_issues.json",
+                        dataType: "json",
+                        error: function(e) {
+                            l.stop();
+                            var source   = $("#issue-list-template-error").html();
+                            var template = Handlebars.compile(source);
+                            $("#results").html(template());
+                        },
+                        success: function(json) {
+                            l.stop();
+                            var source   = $("#issue-list-template").html();
+                            var template = Handlebars.compile(source);
+
+                            $("#results").hide();
+                            $("#results").html(template(json));
+                            setTimeout(function() {
+                                $("#results").fadeIn('fast');
+                            }, 200);
+                        },
+                    });
+
+                    return false;
+                });
+            });
+        </script>
+    </body>
+</html>
