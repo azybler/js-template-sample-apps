@@ -15,6 +15,7 @@ Navigate your web browser to http://127.0.0.1:8082/
 List of JavaScript templating library featured:
 
 * [Handlebars.js](http://handlebarsjs.com/)
+* [mustache](http://mustache.github.io/)
 * ... more to come! So stay tuned.
 
 ## License
