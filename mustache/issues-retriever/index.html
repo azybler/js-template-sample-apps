@@ -1,6 +1,6 @@
 <html>
     <head>
-        <title>Sample handlebars app</title>
+        <title>Sample mustache app</title>
         <link href="css/custom.css" rel="stylesheet" media="screen">
         <link href="css/bootstrap.min.css" rel="stylesheet" media="screen">
         <link href="css/ladda-themeless.min.css" rel="stylesheet" media="screen">
@@ -13,9 +13,9 @@
              to get actual js library file -->
         <script type="text/javascript" src="js/moment.min.js"></script>
 
-        <!-- lookup http://handlebarsjs.com/
+        <!-- lookup http://mustache.github.io/
              to get actual js library file -->
-        <script type="text/javascript" src="js/handlebars-v1.1.2.js"></script>
+        <script type="text/javascript" src="js/mustache.js"></script>
 
         <!-- lookup http://msurguy.github.io/ladda-bootstrap/
              to get actual css & js library file -->
@@ -36,36 +36,34 @@
             <div id="results">
             </div>
         </div>
-        <!-- lookup http://handlebarsjs.com/
-             for the script block ref and how to do each and if statement in a template. -->
-        <script id="issue-list-template" type="text/x-handlebars-template">
-            {{#if this}}
-                {{#each this}}
-                    <div class="issue-template">
-                        {{#ifCond status 'Resolved'}}
-                            <h3>{{title}} - Resolved {{prettifyDate resolvedAt}}</h3>
-                        {{else}}
-                            <h3>{{title}} - Begin {{prettifyDate beganAt}}</h3>
-                        {{/ifCond}}
-                        <p>{{description}}</p>
-                        <div style="padding-left:50px">
-                            <p>Updates:</p>
-                            {{#each updates}}
-                                <div class="well well-sm">
-                                    <p>{{update}}</p>
-                                    <em>By {{by}} - {{prettifyDate at}}</em>
-                                </div>
-                            {{/each}}
-                        </div>
+        <script id="issue-list-template" type="text/x-mustache-template">
+            {{#.}}
+                <div class="issue-template">
+                    {{#isResolved}}
+                        <h3>{{title}} - Resolved {{#formatedResolvedAt}}{{/formatedResolvedAt}}</h3>
+                    {{/isResolved}}
+                    {{^isResolved}}
+                        <h3>{{title}} - Begin {{#formatedBeganAt}}{{/formatedBeganAt}}</h3>
+                    {{/isResolved}}
+                    <p>{{description}}</p>
+                    <div style="padding-left:50px">
+                        <p>Updates:</p>
+                        {{#updates}}
+                            <div class="well well-sm">
+                                <p>{{update}}</p>
+                                <em>By {{by}} - {{#formatedAt}}{{/formatedAt}}</em>
+                            </div>
+                        {{/updates}}
                     </div>
-                {{/each}}
-            {{else}}
+                </div>
+            {{/.}}
+            {{^.}}
                 <div class="no-issues-template alert alert-info">
                     There are no issues. Rejoice!
                 </div>
-            {{/if}}
+            {{/.}}
         </script>
-        <script id="issue-list-template-error" type="text/x-handlebars-template">
+        <script id="issue-list-template-error" type="text/x-mustache-template">
             <!-- lookup http://getbootstrap.com/components/#alerts-dismissable
                  to find out which bootstrap classes to use to make it red. -->
             <div class="alert alert-danger">
@@ -76,25 +74,6 @@
             // lookup http://api.jquery.com/ready/
             // to recall what's the correct way to ensure code is executed after page is loaded.
             $(document).ready(function() {
-
-                // lookup http://stackoverflow.com/questions/8853396/logical-operator-in-a-handlebars-js-if-conditional
-                // to find out how to enable handlebars to use if statement to check equality against some constant.
-                Handlebars.registerHelper('ifCond', function(v1, v2, options) {
-                    if (v1 === v2)
-                        return options.fn(this);
-                    else
-                        return options.inverse(this);
-                });
-
-                // code adapted from https://gist.github.com/stephentcannon/3409103
-                // to find out how to enable a custom helper to render momentjs's output.
-                Handlebars.registerHelper('prettifyDate', function(v1) {
-                    if (window.moment)
-                        return moment(v1).fromNow();
-                    else
-                        return v1;
-                });
-
                 $('#load-current-issues').click(function(e){
                     $("#results").fadeOut('fast');
                     $("#results").html('');
@@ -114,16 +93,54 @@
                         error: function(e) {
                             l.stop();
                             var tpl   = $("#issue-list-template-error").html();
-                            var templatingEngine = Handlebars.compile(tpl);
+                            var templatingEngine = Mustache.render;
+
                             $("#results").html(templatingEngine());
                         },
                         success: function(json) {
+                            $.extend(json, { isResolved: function() {
+                                    return this.status == 'Resolved';
+                                }
+                            });
+                            $.extend(json, { formatedResolvedAt: function() {
+                                    return function(status, render) {
+                                        if (window.moment)
+                                            return moment(this.resolvedAt).fromNow();
+                                        else
+                                            return this.resolvedAt;
+                                    }
+                                }
+                            });
+                            $.extend(json, { formatedBeganAt: function() {
+                                    return function(status, render) {
+                                        if (window.moment)
+                                            return moment(this.beganAt).fromNow();
+                                        else
+                                            return this.beganAt;
+                                    }
+                                }
+                            });
+                            if (json != null) {
+                                for (var i = 0; i < json.length; ++i) {
+                                    $.extend(json[i], { formatedAt: function() {
+                                            return function(status, render) {
+                                                if (window.moment)
+                                                    return moment(this.at).fromNow();
+                                                else
+                                                    return this.at;
+                                            }
+                                        }
+                                    });
+                                }
+                            }
+
+
                             l.stop();
                             var tpl   = $("#issue-list-template").html();
-                            var templatingEngine = Handlebars.compile(tpl);
+                            var templatingEngine = Mustache.render;
 
                             $("#results").hide();
-                            $("#results").html(templatingEngine(json));
+                            $("#results").html(templatingEngine(tpl, json));
                             setTimeout(function() {
                                 $("#results").fadeIn('fast');
                             }, 200);
